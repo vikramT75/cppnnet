@@ -1,70 +1,107 @@
-# cpp-nnet
+# Neural Network in C++
 
-A C++17 port of [cnnet](https://github.com/awat/nn-upscale) — a lightweight, zero-dependency neural network framework.
+A lightweight neural network framework built in modern C++. The core library operates on a custom memory arena allocator and implements modern machine learning primitives, including the Adam optimiser, cross-entropy loss and batch processing.
 
-## What changed from the C version
+The framework trains multi-class classifiers, like MNIST and includes an interactive GUI for real-time inference.
 
-| Aspect | C (`nn.h`) | C++ (`nn.hpp`) |
-|---|---|---|
-| Language | C99/C11 | C++17 |
-| Compiler | `gcc` | `g++` |
-| Compound literals | `(Mat){...}` | member-by-member init |
-| Designated inits | `.rows = ...` | not used (not standard C++) |
-| `NULL` | `NULL` | `nullptr` |
-| `tanhf` | built-in | renamed `nn_tanhf` (avoids `<cmath>` clash) |
-| Activation macro | `#define NN_ACT` | same macro — kept for per-demo config |
-| Cross-entropy | `#define NN_CROSS_ENTROPY` | same macro |
-| Arena allocator | `Region` struct | same struct, same API |
-| Mat struct | C struct | same struct |
-| NN struct | C struct | same struct |
-| Build system | GNU Makefile (gcc) | GNU Makefile (g++) |
+It also features visual Raylib demonstrations for modelling logic gates and learning continuous spatial mappings for image upscaling and morphing.
 
-## What stayed identical
+## Features
 
-- All mathematical operations (mat_dot, backprop, adam, cost)
-- Binary `.mat` file format (magic `nn.h.mat`, same byte layout)
-- OpenMP parallelism (`#pragma omp parallel for`)
-- Arena allocator reset pattern (`region_reset`)
-- Raylib UI (nn_render_raylib, plot_cost)
-- All demo applications and their arguments
+- **Core Library (`nn.hpp`):** A single-header library implementing forward propagation, backpropagation and **OpenMP**-accelerated vectorised batched matrix operations.
+- **Modern ML Tooling:** Implements the Adam Optimiser and logarithmic Cross-Entropy Loss with Softmax activation.
+- **Interactive Visualiser (`nn_ui.hpp`):** Raylib-based GUI rendering network architectures, live cost plots and drawing canvases.
+- **Data Pipeline:** Uses text-based manifests to parse raw PNGs directly into binary `.mat` matrices.
 
-## Building
+## Programs
+
+**Computer Vision & Implicit Networks**
+
+- **Classifier (`classifier_train.cpp` & `classifier_infer.cpp`):** Multi-class training and an interactive Raylib drawing GUI, respectively, for real-time digit/shape prediction.
+- **Upscaler (`upscalenn.cpp`):** A Neural Representation that learns to map `[x, y]` spatial coordinates to grayscale intensities, thus memorising and continuously upscaling an image.
+- **Image Morphing (`morph2nn.cpp`):** Extends the spatial coordinate mapping to smoothly interpolate and morph between two distinct images in real-time.
+
+**Logic & Fundamentals**
+
+- **XOR Gate (`xor.cpp`):** Non-linear classification modelling with live architecture and cost visualisation.
+- **Binary Adder (`adder.cpp`):** Multi-input, multi-output learning for bitwise addition with visualisation.
+
+**Data & Utilities**
+
+- **Dataset Generators (`mnist_gen.cpp` & `shape_gen.cpp`):** Utility programs that read text-based manifests and compile raw PNGs into the binary `.mat` format for training.
+
+## Directory Structure
+
+- `nn.hpp` & `nn_ui.hpp`: Core math, memory and visualisation libraries.
+- `Makefile`: Multi-core build system configured for hardware-accelerated multi-threaded execution (`-march=native -ffast-math -fopenmp`).
+- `demos/`: Source code for all executables.
+  - `data/` & `models/`: Binary `.mat` matrices, manifests and `.arch` network configs.
+- `build/`: Output directory for compiled executables.
+
+## Getting Started
+
+**Prerequisites:**
+
+- G++ (with **OpenMP** support) and Raylib (`pkg-config --cflags raylib`).
+- The raw [MNIST PNG dataset](https://www.kaggle.com/datasets/jidhumohan/mnist-png) to be extracted into the `mnist/` folder.
+
+### Building & Cleaning
+
+To compile all executables into the `build/` directory, run:
 
 ```bash
-make -j          # build all targets
-make xor         # build & run XOR demo
-make adder       # build & run Adder demo
-make upscale     # build & run Upscale demo
-make morph       # build & run Morph demo
-make data-shapes # generate shapes dataset
-make train-shapes EPOCHS=50
-make infer-shapes
+make -j
 ```
 
-## Prerequisites
+To remove all compiled binaries, run:
 
-- g++ with C++17 support
-- Raylib (with pkg-config)
-- OpenMP (usually bundled with GCC)
-
-## Project Structure
-
+```bash
+make clean
 ```
-cpp-nnet/
-├── nn.hpp              # Core library (header-only, define NN_IMPLEMENTATION once)
-├── nn_ui.hpp           # Raylib visualization (define NN_UI_IMPLEMENTATION once)
-├── thirdparty/         # stb_image, stb_image_write, raylib, raymath, sv
-├── demos/
-│   ├── xor.cpp
-│   ├── adder.cpp
-│   ├── upscalenn.cpp
-│   ├── morph2nn.cpp
-│   ├── classifier_train.cpp
-│   ├── classifier_infer.cpp
-│   ├── mnist_gen.cpp
-│   ├── shape_gen.cpp
-│   ├── data/           # .mat datasets (gitignored)
-│   └── models/         # .arch + .weights.mat files
-├── Makefile
-└── README.md
+
+### Image Classification
+
+To train and test a multi-class classifier, follow these three steps:
+
+1. **Generate Dataset:**
+   _(Requires the MNIST PNG dataset to be present in the `mnist/` directory)_
+   ```bash
+   make data-mnist
+   ```
+2. **Train the Model:**
+
+   ```bash
+   make train-mnist EPOCHS=50  # Default is 100
+   ```
+
+   _(Tip: To restrict OpenMP CPU thread usage, use `OMP_NUM_THREADS=N` , for example: `OMP_NUM_THREADS=4 make train-mnist`)_
+
+3. **Run Live Inference:**
+   ```bash
+   make infer-mnist
+   ```
+   _(Note: Replace `mnist` with `shapes` in the commands above to work with the shapes dataset instead)._
+
+### Other Demos
+
+Launch the visual demos using the following commands:
+
+```bash
+make upscale
+make morph
+make xor
+make adder
 ```
+
+### Interactive UI Controls
+
+**Classifier**
+
+- `Left-Click` - Draw on canvas
+- `Right-Click` - Erase
+- `C` - Clear Canvas
+
+**Other Demos**
+
+- `Space` or `P` - Pause/Resume training visualisation
+- `R` - Randomise network weights and restart
