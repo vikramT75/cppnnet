@@ -1,0 +1,6 @@
+# Binaries
+build/
+# Datasets
+demos/data/*.mat
+mnist/testing/
+mnist/training/
